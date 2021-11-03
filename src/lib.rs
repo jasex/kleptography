@@ -26,6 +26,9 @@ pub mod kleptographic {
         pub public: Point<Secp256k1>,
     }
 
+    #[derive(Clone, Debug)]
+    pub struct Cipher {}
+
     impl KeyPair {
         pub fn new(private: Scalar<Secp256k1>) -> Self {
             KeyPair {
@@ -148,8 +151,14 @@ pub mod kleptographic {
         }
         None
     }
+    pub fn encrypt(plain: String, keypair: KeyPair) -> Cipher {
+        let r: Scalar<Secp256k1> = Scalar::random();
+        Cipher {}
+    }
+    pub fn decrypt(cipher: Cipher, keypair: KeyPair) -> String {
+        String::new()
+    }
 }
-
 #[cfg(test)]
 mod tests {
     use crate::kleptographic::*;
@@ -192,5 +201,13 @@ mod tests {
             verify(message1.clone(), sig.clone(), keypair.public.clone()),
             Ok(())
         );
+    }
+    #[test]
+    fn encrypt_and_decrypt() {
+        let message = String::from("hello, i'm plain text");
+        let keypair = KeyPair::new(Scalar::random());
+        let cipher = encrypt(message.clone(), keypair.clone());
+        let recover = decrypt(cipher.clone(), keypair.clone());
+        // assert_eq!(recover, message);
     }
 }
