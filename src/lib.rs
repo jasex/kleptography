@@ -18,6 +18,7 @@ pub mod kleptographic {
     pub struct Signature {
         pub r: Scalar<Secp256k1>,
         pub s: Scalar<Secp256k1>,
+        pub v: BigInt,
     }
 
     #[derive(Clone, Debug)]
@@ -54,10 +55,19 @@ pub mod kleptographic {
         hasher.update(message.as_bytes()).expect("Hash error");
         let m: Scalar<Secp256k1> = Scalar::from_bytes(hasher.finish().unwrap().as_ref()).unwrap();
         let signature_point = k.clone() * Point::generator();
+
+        let mut v = signature_point.y_coord().unwrap() & BigInt::from(1 as u16);
+
         let r: Scalar<Secp256k1> = Scalar::from_bigint(&signature_point.x_coord().unwrap());
         let s: Scalar<Secp256k1> =
             k.clone().invert().unwrap() * (m.clone() + r.clone() * keypair.private.clone());
-        Some(Signature { r, s })
+
+        let n = Scalar::<Secp256k1>::group_order();
+        if s.clone().to_bigint() > n / 2 {
+            v = v ^ BigInt::from(1 as u16);
+        }
+
+        Some(Signature { r, s, v })
     }
     pub fn mal_sign(
         message1: String,

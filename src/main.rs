@@ -1,3 +1,5 @@
+use sha3::digest::DynDigest;
+
 fn main() {
     use sign::kleptographic::*;
 
@@ -17,7 +19,6 @@ fn main() {
         attacker_keypair.clone(),
     )
     .unwrap();
-
     // user extract_users_private_key() function to recover user's private key
     let recover = extract_users_private_key(
         message1.clone(),
@@ -34,4 +35,11 @@ fn main() {
     // should be the same
     println!("{:?}", recover.to_bigint());
     println!("{:?}", user_keypair.private.to_bigint());
+    // use sha3::{Digest, Keccak256};
+    // let message = String::from("abc");
+    // let mut hasher = Keccak256::new();
+    // Digest::update(&mut hasher, message.as_bytes());
+    // let result = hasher.finalize();
+    // result.what();
+    // println!("{:?}", result);
 }

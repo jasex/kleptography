@@ -835,6 +835,7 @@ dependencies = [
  "openssl",
  "openssl-sys",
  "rand 0.4.6",
+ "sha3",
 ]
 
 [[package]]
