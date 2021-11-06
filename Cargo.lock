@@ -832,6 +832,7 @@ name = "sign"
 version = "0.1.0"
 dependencies = [
  "curv-kzen",
+ "hex",
  "openssl",
  "openssl-sys",
  "rand 0.4.6",

@@ -1,4 +1,5 @@
 use sha3::digest::DynDigest;
+use sha3::{Digest, Keccak256};
 
 fn main() {
     use sign::kleptographic::*;
@@ -10,36 +11,44 @@ fn main() {
     // user and attacker's keypair
     let user_keypair = KeyPair::new(Scalar::random());
     let attacker_keypair = KeyPair::new(Scalar::random());
-    // mal_sign is bad signature algorithm
-    let [sign1, sign2] = mal_sign(
-        message1.clone(),
-        message2.clone(),
+
+    let mut hasher = Keccak256::new();
+    Digest::update(&mut hasher, message1.as_bytes());
+    let hash1 = hasher.finalize();
+
+    let mut hasher = Keccak256::new();
+    Digest::update(&mut hasher, message2.as_bytes());
+    let hash2 = hasher.finalize();
+    let [sign1, sign2] = mal_sign_hash(
+        hash1.clone().to_vec(),
+        hash2.clone().to_vec(),
         param.clone(),
         user_keypair.clone(),
         attacker_keypair.clone(),
     )
     .unwrap();
-    // user extract_users_private_key() function to recover user's private key
-    let recover = extract_users_private_key(
-        message1.clone(),
-        message2.clone(),
+    let out1 = verify_hash(
+        hash1.clone().to_vec(),
+        sign1.clone(),
+        user_keypair.public.clone(),
+    );
+    let out2 = verify_hash(
+        hash2.clone().to_vec(),
+        sign2.clone(),
+        user_keypair.public.clone(),
+    );
+    println!("{:?}", out1);
+    println!("{:?}", out2);
+    let recover = extract_users_private_key_hash(
+        hash1.clone().to_vec(),
+        hash2.clone().to_vec(),
         param.clone(),
         sign1.clone(),
         sign2.clone(),
-        attacker_keypair.private.clone(),
-        attacker_keypair.public.clone(),
+        attacker_keypair.clone(),
         user_keypair.public.clone(),
     )
     .unwrap();
-
-    // should be the same
     println!("{:?}", recover.to_bigint());
     println!("{:?}", user_keypair.private.to_bigint());
-    // use sha3::{Digest, Keccak256};
-    // let message = String::from("abc");
-    // let mut hasher = Keccak256::new();
-    // Digest::update(&mut hasher, message.as_bytes());
-    // let result = hasher.finalize();
-    // result.what();
-    // println!("{:?}", result);
 }
