@@ -11,3 +11,4 @@ openssl = "0.10"
 openssl-sys = "0.9"
 sha3 = "0.9.1"
 hex = "0.4.3"
+ecies = {version = "0.2", default-features = false, features = ["pure"]}

@@ -1,54 +1,58 @@
+use ecies::{PublicKey, SecretKey};
+use hex::decode;
 use sha3::digest::DynDigest;
 use sha3::{Digest, Keccak256};
+use std::env;
+use std::io::BufRead;
 
 fn main() {
     use sign::kleptographic::*;
 
-    // messages to be signed
-    let message1 = String::from("Hello motherfucker!");
-    let message2 = String::from("You too motherfucker!");
+    let args: Vec<String> = env::args().collect();
     let param = Param::new();
-    // user and attacker's keypair
-    let user_keypair = KeyPair::new(Scalar::random());
-    let attacker_keypair = KeyPair::new(Scalar::random());
+    if args[1] == "--mulsign".to_string() {
+        if let Ok(hash1) = hex::decode(&args[2]) {
+            if let Ok(hash2) = hex::decode(&args[3]) {
+                let user_private = BigInt::from_hex(
+                    "5dcb5c0a110e3918914f16f07a5d28d3e56e241a337f7fd316ba52d515fa91de",
+                )
+                .unwrap();
+                let attacker_private = BigInt::from_hex(
+                    "6c86c120ac099e545eca4d6afdb1fec11c7becd262cdbcf4c8db0591f40049fd",
+                )
+                .unwrap();
 
-    let mut hasher = Keccak256::new();
-    Digest::update(&mut hasher, message1.as_bytes());
-    let hash1 = hasher.finalize();
+                let user_key = KeyPair::new(Scalar::from_bigint(&user_private));
+                let attacker_key = KeyPair::new(Scalar::from_bigint(&attacker_private));
+                let [sign1, sign2] = mal_sign_hash(
+                    hash1,
+                    hash2,
+                    param.clone(),
+                    user_key.clone(),
+                    attacker_key.clone(),
+                )
+                .unwrap();
+                println!("{}", sign1.v);
+                println!("0x{}", sign1.r.to_bigint().to_hex());
+                println!("0x{}", sign1.s.to_bigint().to_hex());
 
-    let mut hasher = Keccak256::new();
-    Digest::update(&mut hasher, message2.as_bytes());
-    let hash2 = hasher.finalize();
-    let [sign1, sign2] = mal_sign_hash(
-        hash1.clone().to_vec(),
-        hash2.clone().to_vec(),
-        param.clone(),
-        user_keypair.clone(),
-        attacker_keypair.clone(),
-    )
-    .unwrap();
-    let out1 = verify_hash(
-        hash1.clone().to_vec(),
-        sign1.clone(),
-        user_keypair.public.clone(),
-    );
-    let out2 = verify_hash(
-        hash2.clone().to_vec(),
-        sign2.clone(),
-        user_keypair.public.clone(),
-    );
-    println!("{:?}", out1);
-    println!("{:?}", out2);
-    let recover = extract_users_private_key_hash(
-        hash1.clone().to_vec(),
-        hash2.clone().to_vec(),
-        param.clone(),
-        sign1.clone(),
-        sign2.clone(),
-        attacker_keypair.clone(),
-        user_keypair.public.clone(),
-    )
-    .unwrap();
-    println!("{:?}", recover.to_bigint());
-    println!("{:?}", user_keypair.private.to_bigint());
+                println!("{}", sign2.v);
+                println!("0x{}", sign2.r.to_bigint().to_hex());
+                println!("0x{}", sign2.s.to_bigint().to_hex());
+            }
+        } else {
+            println!("Error hex format");
+        }
+    } else if args[1] == "--encrypt".to_string() {
+        let message = args[2].clone();
+        let private = "5dcb5c0a110e3918914f16f07a5d28d3e56e241a337f7fd316ba52d515fa91de";
+        let cipher = encrypt(message.clone(), private.to_string());
+        println!("{}", hex::encode(message.clone().as_bytes()));
+        println!("{}", hex::encode(cipher));
+    } else if args[1] == "--decrypt".to_string() {
+        let cipher = args[2].clone();
+        let private = "5dcb5c0a110e3918914f16f07a5d28d3e56e241a337f7fd316ba52d515fa91de";
+        let plain = decrypt(hex::decode(cipher.clone()).unwrap(), private.to_string());
+        println!("{}", String::from_utf8_lossy(&plain));
+    }
 }

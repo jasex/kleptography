@@ -2,6 +2,7 @@ pub mod kleptographic {
     pub use curv::arithmetic::Converter;
     pub use curv::elliptic::curves::{Point, Scalar, Secp256k1};
     pub use curv::BigInt;
+    use ecies::{PublicKey, SecretKey};
     pub use openssl::hash::{Hasher, MessageDigest};
     pub use rand::thread_rng;
     use rand::Rng;
@@ -27,9 +28,6 @@ pub mod kleptographic {
         pub private: Scalar<Secp256k1>,
         pub public: Point<Secp256k1>,
     }
-
-    #[derive(Clone, Debug)]
-    pub struct Cipher {}
 
     impl KeyPair {
         pub fn new(private: Scalar<Secp256k1>) -> Self {
@@ -261,13 +259,23 @@ pub mod kleptographic {
         }
         None
     }
-    pub fn encrypt(plain: String, keypair: KeyPair) -> Cipher {
-        // TODO encrypt
-        let r: Scalar<Secp256k1> = Scalar::random();
-        Cipher {}
+    pub fn encrypt(plain: String, private: String) -> Vec<u8>{
+        let out = hex::decode(private).unwrap();
+        let sk = SecretKey::parse_slice(out.as_slice()).unwrap();
+        let pk = PublicKey::from_secret_key(&sk);
+
+        let (sk, pk) = (&sk.serialize(), &pk.serialize());
+        let msg = plain.as_bytes();
+        ecies::encrypt(pk, msg).unwrap()
     }
-    pub fn decrypt(cipher: Cipher, keypair: KeyPair) -> String {
-        String::new()
+    pub fn decrypt(cipher: Vec<u8>, private: String) -> Vec<u8>{
+        let out = hex::decode(private).unwrap();
+        let sk = SecretKey::parse_slice(out.as_slice()).unwrap();
+        let pk = PublicKey::from_secret_key(&sk);
+
+        let (sk, pk) = (&sk.serialize(), &pk.serialize());
+
+        ecies::decrypt(sk, cipher.as_slice()).unwrap()
     }
 }
 #[cfg(test)]
@@ -371,9 +379,13 @@ mod tests {
     #[test]
     fn encrypt_and_decrypt() {
         let message = String::from("hello, i'm plain text");
-        let keypair = KeyPair::new(Scalar::random());
-        let cipher = encrypt(message.clone(), keypair.clone());
-        let recover = decrypt(cipher.clone(), keypair.clone());
-        // assert_eq!(recover, message);
+        let private =
+            String::from("5dcb5c0a110e3918914f16f07a5d28d3e56e241a337f7fd316ba52d515fa91de");
+        println!("{:?}",message.as_bytes());
+        let cipher = encrypt(message.clone(), private.clone());
+        let recover = decrypt(cipher.clone(), private.clone());
+        println!("{:?}", cipher);
+        println!("{:?}", recover);
+        assert_eq!(recover, message.as_bytes());
     }
 }
