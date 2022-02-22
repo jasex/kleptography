@@ -1,4 +1,6 @@
 pub mod kleptographic {
+    use std::fs::File;
+    use std::io::Write;
     pub use curv::arithmetic::Converter;
     pub use curv::elliptic::curves::{Point, Scalar, Secp256k1};
     pub use curv::BigInt;
@@ -36,6 +38,33 @@ pub mod kleptographic {
                 private: private.clone(),
                 public: private * Point::generator(),
             }
+        }
+        pub fn fingerprint(&self) -> String {
+            let bytes = self.public.to_bytes(false);
+            base64::encode(&*bytes)
+        }
+        pub fn save(&self) -> std::io::Result<()> {
+            use std::env;
+            let mut base_path = env::current_dir()?;
+            base_path.push("keys");
+            let mut path1 = base_path.clone();
+            path1.push("server_host_key");
+            let mut path2 = base_path.clone();
+            path2.push("server_host_key");
+            path2.set_extension("pub");
+
+            let private_key = self.private.to_bigint().to_bytes();
+            let mut public_key = self.public.to_bytes(false);
+
+            if let Ok(mut file) = File::create(path1.clone()) {
+                file.write(&private_key)?;
+            }
+
+            if let Ok(mut file) = File::create(path2.clone()) {
+                file.write(&public_key)?;
+            }
+
+            Ok(())
         }
     }
     impl Signature {
